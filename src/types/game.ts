@@ -4,13 +4,11 @@ export interface CorruptedDefinition {
 }
 
 export interface GameScenario {
-  text: string;
-  options: {
-    text: string;
-    usesCorruptedWord: boolean;
-    correctChoice: boolean;
-  }[];
-  correctIndex: number;
+  scenario: string;
+  option1: string;
+  option2: string;
+  correctOption: number;
+  explanation: string;
 }
 
 export interface GameSession {

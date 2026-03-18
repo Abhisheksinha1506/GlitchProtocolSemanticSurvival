@@ -5,13 +5,25 @@ import { GlitchText } from './GlitchText';
 import { initAudio } from '../utils/audio';
 
 export function MenuScreen() {
-  const { setPhase, setPlayerName, setSessionId } = useGame();
+  const { setPhase, setPlayerName, setSessionId, resetGame } = useGame();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleStart = async () => {
     if (!name.trim()) return;
 
+    const doc = document.documentElement as any;
+    const requestFS = doc.requestFullscreen || doc.webkitRequestFullscreen || doc.mozRequestFullScreen || doc.msRequestFullscreen;
+    
+    if (requestFS) {
+      try {
+        await requestFS.call(doc);
+      } catch (e) {
+        console.warn("Fullscreen request failed", e);
+      }
+    }
+
+    resetGame();
     initAudio();
     setLoading(true);
     try {
@@ -32,73 +44,92 @@ export function MenuScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-green-400 flex items-center justify-center p-4 overflow-hidden">
+    <div className="min-h-screen bg-black text-green-400 p-4 sm:p-6 flex flex-col items-center justify-center overflow-x-hidden">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-gradient-to-br from-green-900 via-black to-red-900 animate-pulse" />
       </div>
 
-      <div className="relative z-10 max-w-2xl w-full space-y-8 border-2 border-green-500 p-8 bg-black/80 shadow-2xl shadow-green-500/50">
+      <div className="relative z-10 w-full max-w-lg mx-auto flex flex-col space-y-6 sm:space-y-8">
+        {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3 mb-6">
-            <div className="w-12 h-12 text-red-500 animate-pulse flex items-center justify-center">💀</div>
-            <div className="w-12 h-12 text-green-500 flex items-center justify-center">🖥️</div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <span className="text-2xl sm:text-3xl animate-pulse">💀</span>
+            <span className="text-2xl sm:text-3xl">🖥️</span>
           </div>
 
-          <h1 className="text-6xl font-bold tracking-wider">
-            <GlitchText text="GLITCH PROTOCOL" className="text-green-400" />
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight uppercase">
+            <GlitchText text="GLITCH" className="text-green-400 block" />
+            <GlitchText text="PROTOCOL" className="text-green-400 block -mt-2" />
           </h1>
 
-          <div className="text-red-500 text-xl font-mono animate-pulse">
+          <div className="text-red-500 text-xs sm:text-sm font-mono tracking-widest uppercase animate-pulse">
             [SEMANTIC CORRUPTION DETECTED]
           </div>
         </div>
 
-        <div className="bg-green-950/30 border border-green-700 p-6 space-y-3 font-mono text-sm">
-          <p className="text-green-300">{'>'} SYSTEM STATUS: <span className="text-red-500">COMPROMISED</span></p>
-          <p className="text-green-300">{'>'} LINGUISTIC DATABASE: <span className="text-red-500">CORRUPTED</span></p>
-          <p className="text-green-300">{'>'} SURVIVAL PROTOCOL: <span className="text-yellow-500">ACTIVE</span></p>
-          <p className="mt-4 text-green-400 leading-relaxed">
-            The facility AI has corrupted word definitions. To survive, you must REMEMBER the corrupted meanings,
-            not the real ones. Each sector introduces new corruption. One mistake... and you're TERMINATED.
-          </p>
+        {/* Status Panel */}
+        <div className="bg-green-950/20 border border-green-800 p-4 font-mono text-xs sm:text-sm shadow-[0_0_15px_rgba(34,197,94,0.1)]">
+          <div className="space-y-1">
+            <p className="text-green-300 flex justify-between">
+              <span>STATUS:</span>
+              <span className="text-red-500 font-bold">COMPROMISED</span>
+            </p>
+            <p className="text-green-300 flex justify-between">
+              <span>DATABASE:</span>
+              <span className="text-red-500 font-bold">CORRUPTED</span>
+            </p>
+            <p className="text-green-300 flex justify-between">
+              <span>PROTOCOL:</span>
+              <span className="text-yellow-500 font-bold">ACTIVE</span>
+            </p>
+          </div>
+          <div className="mt-4 pt-4 border-t border-green-900/50">
+            <p className="text-green-400/80 leading-relaxed text-[10px] sm:text-xs">
+              AI corruption has rewritten semantics. Memorize the new meanings to survive. Error is termination.
+            </p>
+          </div>
         </div>
 
+        {/* Input Section */}
         <div className="space-y-4">
-          <div>
-            <label className="block text-green-400 mb-2 font-mono text-sm">
-              {'>'} ENTER OPERATOR ID:
+          <div className="space-y-2">
+            <label className="block text-green-500/70 font-mono text-[10px] sm:text-xs tracking-widest uppercase">
+              {'>'} ENTER OPERATOR ID
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleStart()}
-              placeholder="Type your name..."
-              className="w-full bg-black border-2 border-green-500 text-green-400 px-4 py-3 font-mono focus:outline-none focus:border-green-300 focus:shadow-lg focus:shadow-green-500/50 transition-all"
+              placeholder="OPERATOR_NAME"
+              className="w-full bg-black border border-green-500/50 text-green-400 px-4 py-3 font-mono focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400/30 transition-all text-sm sm:text-base placeholder:text-green-900"
               maxLength={20}
               disabled={loading}
             />
           </div>
 
-          <button
-            onClick={handleStart}
-            disabled={!name.trim() || loading}
-            className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold py-4 font-mono text-lg transition-all border-2 border-green-400 hover:shadow-lg hover:shadow-green-500/50 disabled:border-gray-600"
-          >
-            {loading ? '[INITIALIZING...]' : '[INITIATE PROTOCOL]'}
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleStart}
+              disabled={!name.trim() || loading}
+              className="w-full bg-green-600 hover:bg-green-500 disabled:bg-green-950/50 disabled:text-green-900 text-black font-bold py-3 sm:py-4 font-mono text-sm sm:text-base transition-all border border-green-400 uppercase tracking-widest shadow-[0_0_20px_rgba(34,197,94,0.2)]"
+            >
+              {loading ? '[INITIALIZING...]' : '[INITIATE]'}
+            </button>
 
-          <button
-            onClick={handleViewLeaderboard}
-            className="w-full bg-black hover:bg-green-950 text-green-400 font-bold py-3 font-mono border-2 border-green-600 hover:border-green-400 transition-all"
-          >
-            [VIEW LEADERBOARD]
-          </button>
+            <button
+              onClick={handleViewLeaderboard}
+              className="w-full bg-black hover:bg-green-950 text-green-500 font-bold py-2 sm:py-3 font-mono border border-green-800 hover:border-green-500 transition-all text-xs sm:text-sm uppercase tracking-widest"
+            >
+              [LEADERBOARD]
+            </button>
+          </div>
         </div>
 
-        <div className="text-center text-green-600 text-xs font-mono space-y-1">
-          <p>WARNING: This facility is unstable</p>
-          <p className="text-red-600 animate-pulse">Trust nothing. Remember everything.</p>
+        {/* Footer Warning */}
+        <div className="text-center font-mono space-y-1 pt-4 opacity-50">
+          <p className="text-[8px] sm:text-[10px] text-green-700 tracking-[0.2em] uppercase">WARNING: FACILITY INSTABILITY DETECTED</p>
+          <p className="text-[8px] sm:text-[10px] text-red-900 animate-pulse tracking-widest uppercase">TRUST NOTHING. REMEMBER EVERYTHING.</p>
         </div>
       </div>
     </div>

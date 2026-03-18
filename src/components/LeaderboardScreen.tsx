@@ -36,81 +36,91 @@ export function LeaderboardScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-4 flex items-center justify-center">
-      <div className="max-w-4xl w-full space-y-6">
-        <div className="text-center space-y-4 border-2 border-green-500 p-8 bg-black">
+    <div className="min-h-screen bg-black text-green-500 p-4 sm:p-8 flex flex-col items-center overflow-x-hidden">
+      <div className="w-full max-w-2xl mx-auto flex flex-col space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-3">
-            <Trophy className="w-12 h-12 text-yellow-400" />
-            <h1 className="text-5xl font-bold font-mono">
-              <GlitchText text="LEADERBOARD" className="text-green-400" />
+            <Trophy className="w-10 h-10 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.2)]" />
+            <h1 className="text-3xl sm:text-4xl font-bold font-mono tracking-tighter uppercase">
+              <GlitchText text="LEADERBOARD" className="text-green-500" />
             </h1>
           </div>
-          <p className="text-green-500 font-mono">[TOP SURVIVORS]</p>
+          <p className="text-green-900 font-mono text-[10px] tracking-[0.4em] uppercase">[TOP_SURVIVORS_REGISTRY]</p>
         </div>
 
-        {loading ? (
-          <div className="text-center text-2xl font-mono animate-pulse">
-            [LOADING DATA...]
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="text-center border-2 border-green-600 p-8 bg-green-950/20">
-            <p className="text-green-400 font-mono text-lg">
-              No survivors yet. Be the first to enter the protocol.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {entries.map((entry, index) => (
-              <div
-                key={entry.id}
-                className={`border-2 p-4 font-mono flex items-center justify-between ${
-                  index === 0
-                    ? 'border-yellow-500 bg-yellow-950/20'
-                    : index === 1
-                    ? 'border-gray-400 bg-gray-950/20'
-                    : index === 2
-                    ? 'border-orange-700 bg-orange-950/20'
-                    : 'border-green-700 bg-green-950/10'
-                }`}
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className={`text-2xl font-bold w-12 text-center ${
-                    index === 0 ? 'text-yellow-400' :
-                    index === 1 ? 'text-gray-400' :
-                    index === 2 ? 'text-orange-600' :
-                    'text-green-600'
-                  }`}>
-                    {index === 0 && <Crown className="w-8 h-8 mx-auto" />}
-                    {index !== 0 && `#${index + 1}`}
-                  </div>
-                  <div className="flex-1">
-                    <div className={`text-lg font-bold ${
-                      index === 0 ? 'text-yellow-400' : 'text-green-400'
+        {/* Content */}
+        <div className="flex-1 min-h-0">
+          {loading ? (
+            <div className="text-center py-20 font-mono animate-pulse text-green-900 uppercase">
+              [SYNCHRONIZING_DATA...]
+            </div>
+          ) : entries.length === 0 ? (
+            <div className="text-center border border-green-900/30 p-12 bg-green-950/5 font-mono">
+              <p className="text-green-800 text-xs sm:text-sm uppercase tracking-widest">
+                No survivors recorded.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+              {entries.map((entry, index) => (
+                <div
+                  key={entry.id}
+                  className={`border p-4 font-mono relative group transition-all ${
+                    index === 0 ? 'border-yellow-500/50 bg-yellow-950/10' :
+                    index === 1 ? 'border-gray-500/30 bg-gray-950/10' :
+                    index === 2 ? 'border-orange-900/30 bg-orange-950/10' :
+                    'border-green-900/20 bg-green-950/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className={`text-2xl font-bold italic w-8 ${
+                      index === 0 ? 'text-yellow-500' : 'text-green-900'
                     }`}>
-                      {entry.player_name}
+                      {index + 1}
                     </div>
-                    <div className="text-sm text-green-600">
-                      Sectors: {entry.sectors_completed} | Time: {formatDuration(entry.game_duration)}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className={`text-sm sm:text-base font-bold truncate ${
+                          index === 0 ? 'text-yellow-400' : 'text-green-400'
+                        }`}>
+                          {entry.player_name}
+                        </span>
+                        {index === 0 && <Crown className="w-3 h-3 text-yellow-500 animate-bounce" />}
+                      </div>
+                      <div className="flex gap-3 text-[8px] sm:text-[10px] text-green-800 uppercase tracking-tighter">
+                        <span>SEC: {entry.sectors_completed}</span>
+                        <span className="opacity-30">|</span>
+                        <span>DUR: {formatDuration(entry.game_duration)}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className={`text-2xl font-bold ${
-                    index === 0 ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    {entry.final_score}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
-        <button
-          onClick={handleBack}
-          className="w-full bg-black hover:bg-green-950 text-green-400 font-bold py-4 font-mono text-lg border-2 border-green-600 hover:border-green-400 flex items-center justify-center gap-2 transition-all"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          [RETURN TO MENU]
-        </button>
+                    <div className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                      index === 0 ? 'text-yellow-400' : 'text-green-500'
+                    }`}>
+                      {entry.final_score}
+                    </div>
+                  </div>
+                  {index === 0 && (
+                     <div className="absolute top-0 right-0 w-16 h-16 bg-yellow-500/5 blur-2xl rounded-full" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="pt-4">
+          <button
+            onClick={handleBack}
+            className="w-full bg-black hover:bg-green-950/50 text-green-500 font-bold py-4 font-mono text-sm border border-green-900 hover:border-green-500 flex items-center justify-center gap-3 transition-all uppercase tracking-widest"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            [RETURN_TO_CORE]
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -32,8 +32,10 @@ export function CorruptionPhase() {
       }).catch(console.error);
     }
 
-    setLoading(false);
-    playGlitch();
+    setTimeout(() => {
+      setLoading(false);
+      playGlitch();
+    }, 500);
   }, [currentSector]);
 
   useEffect(() => {
@@ -61,79 +63,75 @@ export function CorruptionPhase() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 flex items-center justify-center p-4">
-      <div className="max-w-3xl w-full space-y-6 border-2 border-red-500 p-8 bg-black shadow-2xl shadow-red-500/50">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <AlertTriangle className="w-10 h-10 text-red-500 animate-pulse" />
-          <h2 className="text-4xl font-bold font-mono">
+    <div className="min-h-screen bg-black text-green-400 p-4 sm:p-8 flex flex-col items-center justify-center overflow-x-hidden">
+      <div className="w-full max-w-2xl mx-auto flex flex-col space-y-8">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-4 text-center">
+          <AlertTriangle className="w-12 h-12 text-red-600 animate-pulse" />
+          <h2 className="text-3xl sm:text-4xl font-bold font-mono tracking-tighter uppercase">
             <GlitchText text={`SECTOR ${currentSector}`} className="text-red-500" />
           </h2>
         </div>
 
-        <div className="bg-red-950/30 border border-red-700 p-4 text-center space-y-2">
-          <p className="text-red-400 font-mono text-lg animate-pulse">
-            [DATABASE CORRUPTION DETECTED]
+        {/* Status Panel */}
+        <div className="bg-red-950/20 border border-red-900/50 p-4 font-mono">
+          <p className="text-red-500 text-[10px] sm:text-xs tracking-[0.3em] uppercase mb-2 animate-pulse">
+            [DATABASE_CORRUPTION_CRITICAL]
           </p>
-          <div className="text-xs font-mono text-red-600 border-t border-red-900 pt-2 text-left">
-            <p className="animate-pulse">
-              {currentSector === 1 && "> SYSTEM MESSAGE: Initial breach detected. Semantic anchors failing."}
-              {currentSector === 2 && "> SYSTEM MESSAGE: Cognitive dissonance increasing. Facility air feels... metallic."}
-              {currentSector === 3 && "> SYSTEM MESSAGE: Neural architecture rewriting. Logic is a luxury we can no longer afford."}
-              {currentSector > 3 && `> SYSTEM MESSAGE: SECTOR ${currentSector} INTELLIGENCE: Silence is no longer quiet. The lexicon is bleeding.`}
+          <div className="text-[10px] sm:text-xs text-red-700 space-y-1">
+            <p className="opacity-80">
+              {currentSector === 1 && "> Initial breach detected. Semantic anchors failing."}
+              {currentSector === 2 && "> Cognitive dissonance increasing. Facility atmosphere unstable."}
+              {currentSector === 3 && "> Neural architecture rewriting. Logic is decaying."}
+              {currentSector > 3 && `> SECTOR ${currentSector} INTELLIGENCE: The lexicon is bleeding.`}
             </p>
-            <p className="opacity-50 mt-1">
-              {'>'} LOCATION: RESEARCH_WING_{currentSector.toString().padStart(3, '0')} | STATUS: CRITICAL
+            <p className="opacity-40 text-[8px] sm:text-[10px]">
+              LOCATION: CORE_NODE_{currentSector.toString().padStart(3, '0')} | STATUS: UNSTABLE
             </p>
           </div>
         </div>
 
+        {/* Corrupted Definitions */}
         <div className="space-y-4">
-          <p className="text-green-300 font-mono text-center text-lg">
-            MEMORIZE THESE CORRUPTED DEFINITIONS:
+          <p className="text-green-500/70 font-mono text-[10px] sm:text-xs tracking-widest text-center uppercase">
+            MEMORIZE_CORRUPTED_DEFINITIONS:
           </p>
 
-          {corruptedDefinitions.length > 5 ? (
-            <div className="relative w-full overflow-hidden bg-red-950/20 border-y-2 border-red-600 py-6 h-24">
-              <div className="absolute whitespace-nowrap animate-marquee flex gap-16 items-center h-full">
-                {[...corruptedDefinitions, ...corruptedDefinitions].map((def, i) => (
-                  <div key={i} className="inline-flex items-center gap-3 font-mono">
-                    <span className="text-yellow-400 text-xl font-bold">"{def.original}"</span>
-                    <span className="text-green-400 text-2xl">→</span>
-                    <span className="text-red-400 text-xl font-bold animate-pulse">"{def.corrupted}"</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
-              {corruptedDefinitions.map((def, i) => (
-                <div
-                  key={i}
-                  className="bg-green-950/20 border-2 border-green-600 p-4 font-mono animate-pulse"
-                  style={{ animationDelay: `${i * 0.1}s` }}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="text-yellow-400 text-xl font-bold">"{def.original}"</span>
-                    <span className="text-green-400 text-2xl">→</span>
-                    <span className="text-red-400 text-xl font-bold">"{def.corrupted}"</span>
-                  </div>
+          <div className="grid gap-3 sm:gap-4">
+            {corruptedDefinitions.slice(-3).map((def, i) => (
+              <div
+                key={i}
+                className="bg-green-950/10 border border-green-900/50 p-4 font-mono group hover:border-green-500/50 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-yellow-500/80 text-sm sm:text-base font-bold italic">"{def.original}"</span>
+                  <span className="text-green-500/30 text-xl font-light">→</span>
+                  <span className="text-red-500 text-sm sm:text-base font-bold animate-pulse">"{def.corrupted}"</span>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
+          
+          {corruptedDefinitions.length > 3 && (
+            <p className="text-[8px] text-green-900 font-mono text-center uppercase">
+              + {corruptedDefinitions.length - 3} OTHER ACTIVE CORRUPTIONS IN MEMORY BUFFER
+            </p>
           )}
         </div>
 
-        <div className="text-center space-y-4 pt-6">
-          <div className="text-6xl font-bold font-mono text-green-400 animate-pulse">
-            {countdown}
+        {/* Countdown */}
+        <div className="text-center space-y-4 py-4">
+          <div className="text-6xl sm:text-7xl font-bold font-mono text-green-500 tabular-nums">
+            0{countdown}
           </div>
-          <p className="text-green-500 font-mono">
-            [SURVIVAL PHASE INITIATING...]
+          <p className="text-green-900 font-mono text-[10px] sm:text-xs tracking-[0.4em] uppercase">
+            [INITIATING_SURVIVAL_SEQUENCE]
           </p>
         </div>
 
-        <div className="bg-yellow-950/30 border border-yellow-600 p-3 text-center">
-          <p className="text-yellow-400 text-sm font-mono">
+        {/* Footer Warning */}
+        <div className="bg-yellow-950/10 border border-yellow-900/30 p-3 text-center">
+          <p className="text-yellow-600/70 text-[8px] sm:text-[10px] font-mono tracking-widest uppercase">
             ⚠ USE THE CORRUPTED MEANINGS TO SURVIVE ⚠
           </p>
         </div>

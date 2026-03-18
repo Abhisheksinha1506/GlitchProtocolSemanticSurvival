@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { GameSession, LeaderboardEntry, CorruptedDefinition } from '../types/game';
+import { GameSession, LeaderboardEntry, CorruptedDefinition, GameScenario } from '../types/game';
 
 
 export async function createGameSession(playerName: string): Promise<string> {
@@ -53,13 +53,37 @@ export async function endGameSession(
     score: finalScore,
   }).eq('id', sessionId);
 
-  await supabase.from('leaderboard').insert({
-    player_name: playerName,
-    final_score: finalScore,
-    sectors_completed: sectorsCompleted,
-    game_duration: duration,
-    session_id: sessionId,
-  });
+  // Check for existing highest score for this player
+  const { data: entries } = await supabase
+    .from('leaderboard')
+    .select('id, final_score')
+    .eq('player_name', playerName)
+    .order('final_score', { ascending: false })
+    .limit(1);
+
+  const existingEntry = entries && entries.length > 0 ? entries[0] : null;
+
+  if (existingEntry) {
+    if (finalScore > existingEntry.final_score) {
+      await supabase.from('leaderboard')
+        .update({
+          final_score: finalScore,
+          sectors_completed: sectorsCompleted,
+          game_duration: duration,
+          session_id: sessionId,
+          created_at: new Date().toISOString(),
+        })
+        .eq('id', existingEntry.id);
+    }
+  } else {
+    await supabase.from('leaderboard').insert({
+      player_name: playerName,
+      final_score: finalScore,
+      sectors_completed: sectorsCompleted,
+      game_duration: duration,
+      session_id: sessionId,
+    });
+  }
 }
 
 export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
@@ -79,7 +103,7 @@ const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 export async function generateScenario(
   sector: number,
   corruptedDefinitions: CorruptedDefinition[]
-): Promise<any> {
+): Promise<GameScenario> {
   const systemPrompt = `You are the malicious and decaying Facility AI in a psychological thriller. 
   Your goal is to create TENSE, DESCRIPTIVE, and ATMOSPHERIC survival scenarios. 
   Use sensory details (sounds, smells, visual glitches). 
@@ -101,7 +125,7 @@ export async function generateScenario(
     "explanation": "A clinical explanation of why the player survived or was terminated."
   }`;
 
-  const tryGroq = async () => {
+  const tryGroq = async (): Promise<string> => {
     if (!GROQ_API_KEY) throw new Error("No Groq API Key");
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -124,7 +148,7 @@ export async function generateScenario(
     return data.choices[0].message.content;
   };
 
-  const tryOpenRouter = async () => {
+  const tryOpenRouter = async (): Promise<string> => {
     if (!OPENROUTER_API_KEY) throw new Error("No OpenRouter API Key");
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -145,7 +169,7 @@ export async function generateScenario(
     return data.choices[0].message.content;
   };
 
-  const tryPuter = async () => {
+  const tryPuter = async (): Promise<string> => {
     const response = await fetch("https://api.puter.ai/v1/chat/completions", {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -163,7 +187,7 @@ export async function generateScenario(
   };
 
   try {
-    let content;
+    let content: string;
     try {
       content = await tryGroq();
     } catch (e) {
@@ -189,14 +213,14 @@ export async function generateScenario(
       throw new Error("AI response missing required fields");
     }
     
-    return parsed;
+    return parsed as GameScenario;
   } catch (err) {
     console.error("AI Generation and Parsing failed. Using local fallback.", err);
     return generateLocalFallback(sector, corruptedDefinitions);
   }
 }
 
-function generateLocalFallback(sector: number, corruptedDefinitions: CorruptedDefinition[]) {
+function generateLocalFallback(sector: number, corruptedDefinitions: CorruptedDefinition[]): GameScenario {
   const def = corruptedDefinitions[Math.floor(Math.random() * corruptedDefinitions.length)];
   return {
     scenario: `[LOCAL_DECODING_ACTIVE] You encounter a sector ${sector} security gate. It requires you to interpret the corrupted concept of "${def.original}".`,

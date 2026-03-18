@@ -3,7 +3,7 @@ let audioCtx: AudioContext | null = null;
 
 const getAudioContext = () => {
   if (!audioCtx) {
-    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)(); // Still need 'any' for the prefixed version if not in types, or cast to any safely
   }
   return audioCtx;
 };

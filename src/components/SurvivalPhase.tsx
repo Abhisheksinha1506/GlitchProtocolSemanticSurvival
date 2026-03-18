@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Heart, Zap, Target } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import { updateGameSession, endGameSession, generateScenario } from '../utils/api';
 import { GlitchText } from './GlitchText';
+import { FeedbackModal } from './FeedbackModal';
 import { playSuccess, playError, playTimerTick, playGlitch } from '../utils/audio';
+import { GameScenario } from '../types/game';
 
 export function SurvivalPhase() {
   const {
@@ -19,29 +21,14 @@ export function SurvivalPhase() {
     setLives,
   } = useGame();
 
-  const [scenario, setScenario] = useState<any>(null);
+  const [scenario, setScenario] = useState<GameScenario | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(20);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    loadScenario();
-  }, [currentSector]);
-
-  useEffect(() => {
-    if (timeLeft > 0 && !feedback && !loading) {
-      const timer = setTimeout(() => {
-        setTimeLeft(timeLeft - 1);
-        playTimerTick();
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !feedback && !loading) {
-      handleChoice(0);
-    }
-  }, [timeLeft, feedback, loading]);
-
-  const loadScenario = async () => {
+  const loadScenario = useCallback(async () => {
     setLoading(true);
     setFeedback(null);
     setSelectedOption(null);
@@ -63,10 +50,10 @@ export function SurvivalPhase() {
       setLoading(false);
       playGlitch();
     }
-  };
+  }, [currentSector, corruptedDefinitions]);
 
-  const handleChoice = async (choice: number) => {
-    if (feedback) return;
+  const handleChoice = useCallback(async (choice: number) => {
+    if (feedback || !scenario) return;
 
     // Special handling for System Error fallback
     if (scenario.scenario === 'System error. Unable to generate scenario.') {
@@ -75,8 +62,9 @@ export function SurvivalPhase() {
         return;
       } else { // Continue (lose life)
         playError();
-        setLives(lives - 1);
-        if (lives <= 1) {
+        const newLives = lives - 1;
+        setLives(newLives);
+        if (newLives <= 0) {
            if (sessionId) await endGameSession(sessionId, score, currentSector, playerName);
            setPhase('gameover');
         } else {
@@ -89,6 +77,7 @@ export function SurvivalPhase() {
     setSelectedOption(choice);
     const isCorrect = choice === scenario.correctOption;
     setFeedback(isCorrect ? 'correct' : 'wrong');
+    setShowModal(true);
 
     if (isCorrect) {
       playSuccess();
@@ -99,11 +88,6 @@ export function SurvivalPhase() {
       if (sessionId) {
         await updateGameSession(sessionId, { score: newScore });
       }
-
-      setTimeout(() => {
-        setCurrentSector(currentSector + 1);
-        setPhase('corruption');
-      }, 2000);
     } else {
       playError();
       const newLives = lives - 1;
@@ -113,14 +97,40 @@ export function SurvivalPhase() {
         if (sessionId) {
           await endGameSession(sessionId, score, currentSector, playerName);
         }
-        setTimeout(() => setPhase('gameover'), 2000);
+      }
+    }
+  }, [feedback, scenario, loadScenario, lives, setLives, sessionId, score, currentSector, playerName, setPhase, timeLeft, setScore]);
+
+  useEffect(() => {
+    loadScenario();
+  }, [loadScenario]);
+
+  useEffect(() => {
+    if (timeLeft > 0 && !feedback && !loading) {
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1);
+        playTimerTick();
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && !feedback && !loading) {
+      handleChoice(0);
+    }
+  }, [timeLeft, feedback, loading, handleChoice]);
+
+  const handleModalClose = () => {
+    setShowModal(false);
+    
+    if (feedback === 'correct') {
+      setCurrentSector(currentSector + 1);
+      setPhase('corruption');
+    } else {
+      if (lives <= 0) {
+        setPhase('gameover');
       } else {
-        setTimeout(() => {
-          setFeedback(null);
-          setSelectedOption(null);
-          setTimeLeft(20);
-          loadScenario();
-        }, 2000);
+        setFeedback(null);
+        setSelectedOption(null);
+        setTimeLeft(20);
+        loadScenario();
       }
     }
   };
@@ -136,70 +146,72 @@ export function SurvivalPhase() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-green-400 p-4 flex items-center justify-center">
-      <div className="max-w-4xl w-full space-y-6">
-        <div className="flex justify-between items-center bg-black border-2 border-green-600 p-4 font-mono">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            <span>SECTOR: <span className="text-yellow-400 font-bold">{currentSector}</span></span>
+    <div className="min-h-screen bg-black text-green-400 p-4 sm:p-6 flex flex-col overflow-x-hidden">
+      <div className="w-full max-w-2xl mx-auto flex flex-col flex-1 gap-4">
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 gap-2 font-mono text-[10px] sm:text-xs">
+          <div className="bg-green-950/10 border border-green-900/50 p-2 flex items-center gap-2">
+            <Target className="w-3 h-3 text-yellow-500" />
+            <span>SEC: {currentSector}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5" />
-            <span>SCORE: <span className="text-green-400 font-bold">{score}</span></span>
+          <div className="bg-green-950/10 border border-green-900/50 p-2 flex items-center gap-2">
+            <Zap className="w-3 h-3 text-green-500" />
+            <span>SCR: {score}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <Heart className={`w-5 h-5 ${lives <= 1 ? 'text-red-500 animate-pulse' : 'text-red-400'}`} />
-            <span>LIVES: <span className={`font-bold ${lives <= 1 ? 'text-red-500' : 'text-red-400'}`}>{lives}</span></span>
+          <div className="bg-green-950/10 border border-green-900/50 p-2 flex items-center gap-2">
+            <Heart className={`w-3 h-3 ${lives === 0 ? 'text-red-500 animate-pulse' : 'text-red-400'}`} />
+            <span>LVS: {lives}</span>
           </div>
-          <div className={`text-2xl font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
+          <div className={`bg-green-950/10 border border-green-900/50 p-2 flex items-center justify-center font-bold text-sm sm:text-base ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-yellow-400'}`}>
             {timeLeft}s
           </div>
         </div>
 
-        <div className="bg-green-950/20 border-2 border-green-600 p-4">
-          <div className="text-sm text-green-500 mb-2 font-mono">ACTIVE CORRUPTIONS:</div>
-          <div className="flex flex-wrap gap-2">
+        {/* Active Corruptions - Compact for mobile */}
+        <div className="bg-green-950/5 border border-green-900/30 p-2">
+          <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto custom-scrollbar">
             {corruptedDefinitions.map((def, i) => (
-              <span key={i} className="bg-black border border-green-700 px-3 py-1 text-xs font-mono">
+              <span key={i} className="text-[8px] sm:text-[10px] font-mono whitespace-nowrap bg-black/50 px-1 border border-green-900/50">
                 {def.original}→{def.corrupted}
               </span>
             ))}
           </div>
         </div>
 
-        <div className={`border-2 p-8 space-y-6 ${
-          feedback === 'correct' ? 'border-green-500 bg-green-950/30' :
-          feedback === 'wrong' ? 'border-red-500 bg-red-950/30' :
-          'border-yellow-500 bg-black'
+        {/* Main Scenario Container */}
+        <div className={`flex flex-col flex-1 border p-4 sm:p-6 gap-6 sm:gap-8 min-h-0 ${
+          feedback === 'correct' ? 'border-green-500/50 bg-green-950/20' :
+          feedback === 'wrong' ? 'border-red-500/50 bg-red-950/20' :
+          'border-green-800/50 bg-black/40 shadow-inner'
         }`}>
-          <div className="text-center">
-            <h3 className="text-2xl font-mono mb-4 text-yellow-400">
-              <GlitchText text="[SITUATION CRITICAL]" />
-            </h3>
-            <p className="text-xl leading-relaxed text-green-300 font-mono">
-              {scenario.scenario}
+          <div className="flex flex-col items-center text-center space-y-4 overflow-y-auto custom-scrollbar pr-1">
+            <div className="bg-yellow-500/10 px-3 py-1 border border-yellow-500/30">
+               <GlitchText text="SITUATION_CRITICAL" className="text-[10px] sm:text-xs text-yellow-500 font-mono tracking-widest uppercase" />
+            </div>
+            <p className="text-sm sm:text-base md:text-lg leading-relaxed text-green-300 font-mono">
+              {scenario?.scenario}
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid gap-3 sm:gap-4 mt-auto">
             {[1, 2].map((optionNum) => {
               const isSelected = selectedOption === optionNum;
-              const isCorrect = optionNum === scenario.correctOption;
+              const isCorrect = optionNum === scenario?.correctOption;
 
-              let buttonClass = 'w-full p-6 text-xl font-mono border-2 transition-all ';
+              let buttonClass = 'w-full p-4 text-xs sm:text-sm md:text-base font-mono border transition-all duration-300 text-left relative overflow-hidden ';
 
               if (feedback) {
                 if (isSelected && isCorrect) {
-                  buttonClass += 'bg-green-600 border-green-400 text-black';
+                  buttonClass += 'bg-green-600 border-green-400 text-black shadow-[0_0_20px_rgba(34,197,94,0.4)]';
                 } else if (isSelected && !isCorrect) {
-                  buttonClass += 'bg-red-600 border-red-400 text-white';
+                  buttonClass += 'bg-red-600 border-red-400 text-white shadow-[0_0_20px_rgba(239,68,68,0.4)]';
                 } else if (isCorrect) {
-                  buttonClass += 'bg-green-900 border-green-500 text-green-300';
+                  buttonClass += 'bg-green-900/50 border-green-500/50 text-green-400';
                 } else {
-                  buttonClass += 'bg-gray-900 border-gray-700 text-gray-500';
+                  buttonClass += 'bg-gray-900/30 border-gray-800 text-gray-700';
                 }
               } else {
-                buttonClass += 'bg-black border-green-600 text-green-400 hover:bg-green-950 hover:border-green-400 hover:shadow-lg hover:shadow-green-500/50';
+                buttonClass += 'bg-black/80 border-green-900 hover:border-green-500 hover:bg-green-950/50 group';
               }
 
               return (
@@ -209,38 +221,30 @@ export function SurvivalPhase() {
                   disabled={!!feedback}
                   className={buttonClass}
                 >
-                  [{optionNum}] {scenario[`option${optionNum}`]}
+                  <span className="opacity-30 mr-2">[{optionNum}]</span>
+                  {scenario ? (scenario as any)[`option${optionNum}`] : ''}
+                  {!feedback && (
+                    <div className="absolute right-0 top-0 bottom-0 w-1 bg-green-500 transform translate-x-full group-hover:translate-x-0 transition-transform" />
+                  )}
                 </button>
               );
             })}
           </div>
-
-          {feedback && (
-            <div className={`text-center p-4 border-2 ${
-              feedback === 'correct' ? 'border-green-500 bg-green-950/50' : 'border-red-500 bg-red-950/50'
-            }`}>
-              <p className={`text-xl font-bold font-mono mb-2 ${
-                feedback === 'correct' ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {feedback === 'correct' ? '[CORRECT - SURVIVED]' : '[WRONG - TAKING DAMAGE]'}
-              </p>
-              <p className="text-sm font-mono text-green-300">
-                {scenario.explanation}
-              </p>
-            </div>
-          )}
         </div>
-        <div className="bg-black border-2 border-red-900/50 p-3 h-20 overflow-hidden relative">
-          <div className="absolute inset-0 bg-red-900/5 opacity-5 animate-pulse" />
-          <div className="font-mono text-[10px] text-red-500/60 flex flex-col-reverse h-full overflow-y-auto scrollbar-hide">
-             <p className="animate-pulse">{'>'} Neural static detected... {timeLeft}s remaining for cognitive integrity.</p>
-             <p>[LOG] Memory sector {currentSector} is undergoing forced restructuring.</p>
-             <p>[AI] Trust the glitch. The truth is too stable to be real.</p>
-             <p>[STATUS] LINGUISTIC_ANCHOR_STATE: UNSTABLE</p>
-             <p>[LOG] Buffer overflow in semantic processing. Re-evaluating truth values.</p>
-          </div>
+
+        {/* Terminal Log Output */}
+        <div className="bg-black/80 border border-green-900/30 p-2 font-mono text-[8px] sm:text-[10px] h-12 flex flex-col justify-end opacity-40">
+           <p className="truncate text-green-900 animate-pulse">{'>'} NEURAL_STATIC: {timeLeft}s remaining...</p>
+           <p className="truncate text-red-900">{'>'} [LOG] SECTOR_{currentSector}_BUFFER_OVERFLOW</p>
         </div>
       </div>
+
+      <FeedbackModal
+        isOpen={showModal}
+        onClose={handleModalClose}
+        isCorrect={feedback === 'correct'}
+        explanation={scenario?.explanation || ''}
+      />
     </div>
   );
 }
