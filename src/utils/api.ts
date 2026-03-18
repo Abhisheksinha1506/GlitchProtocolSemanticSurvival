@@ -73,6 +73,9 @@ export async function getLeaderboard(limit = 10): Promise<LeaderboardEntry[]> {
   return data || [];
 }
 
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+
 export async function generateScenario(
   sector: number,
   corruptedDefinitions: CorruptedDefinition[]
@@ -98,29 +101,108 @@ export async function generateScenario(
     "explanation": "A clinical explanation of why the player survived or was terminated."
   }`;
 
-  // Default to Puter AI as per user preference (Edge functions removed)
-  const response = await fetch("https://api.puter.ai/v1/chat/completions", {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt }
-      ],
-      temperature: 0.8,
-      max_tokens: 500,
-    }),
-  });
+  const tryGroq = async () => {
+    if (!GROQ_API_KEY) throw new Error("No Groq API Key");
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.8,
+        response_format: { type: "json_object" }
+      }),
+    });
+    if (!response.ok) throw new Error(`Groq failed: ${response.status}`);
+    const data = await response.json();
+    return data.choices[0].message.content;
+  };
 
-  if (!response.ok) {
-    throw new Error(`Puter AI error: ${await response.text()}`);
+  const tryOpenRouter = async () => {
+    if (!OPENROUTER_API_KEY) throw new Error("No OpenRouter API Key");
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "mistralai/mistral-7b-instruct:free",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`OpenRouter failed: ${response.status}`);
+    const data = await response.json();
+    return data.choices[0].message.content;
+  };
+
+  const tryPuter = async () => {
+    const response = await fetch("https://api.puter.ai/v1/chat/completions", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt }
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`Puter AI failed: ${response.status}`);
+    const data = await response.json();
+    return data.choices[0].message.content;
+  };
+
+  try {
+    let content;
+    try {
+      content = await tryGroq();
+    } catch (e) {
+      console.warn("Groq failed, trying OpenRouter...", e);
+      try {
+        content = await tryOpenRouter();
+      } catch (e2) {
+        console.warn("OpenRouter failed, trying Puter...", e2);
+        try {
+          content = await tryPuter();
+        } catch (e3) {
+          console.error("All AI providers failed. Using local fallback.", e3);
+          return generateLocalFallback(sector, corruptedDefinitions);
+        }
+      }
+    }
+
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+    
+    // Validate required fields
+    if (!parsed.scenario || !parsed.option1 || !parsed.option2 || !parsed.correctOption) {
+      throw new Error("AI response missing required fields");
+    }
+    
+    return parsed;
+  } catch (err) {
+    console.error("AI Generation and Parsing failed. Using local fallback.", err);
+    return generateLocalFallback(sector, corruptedDefinitions);
   }
+}
 
-  const data = await response.json();
-  const content = data.choices[0].message.content;
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  return jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
+function generateLocalFallback(sector: number, corruptedDefinitions: CorruptedDefinition[]) {
+  const def = corruptedDefinitions[Math.floor(Math.random() * corruptedDefinitions.length)];
+  return {
+    scenario: `[LOCAL_DECODING_ACTIVE] You encounter a sector ${sector} security gate. It requires you to interpret the corrupted concept of "${def.original}".`,
+    option1: `Use the real-world logic for "${def.original}".`,
+    option2: `Use the facility's new interpretation: "${def.corrupted}".`,
+    correctOption: 2,
+    explanation: `Facility security only accepts corrupted semantic values. "${def.corrupted}" is the only valid key.`
+  };
 }

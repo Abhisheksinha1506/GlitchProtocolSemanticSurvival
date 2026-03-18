@@ -68,6 +68,24 @@ export function SurvivalPhase() {
   const handleChoice = async (choice: number) => {
     if (feedback) return;
 
+    // Special handling for System Error fallback
+    if (scenario.scenario === 'System error. Unable to generate scenario.') {
+      if (choice === 1) { // Retry
+        loadScenario();
+        return;
+      } else { // Continue (lose life)
+        playError();
+        setLives(lives - 1);
+        if (lives <= 1) {
+           if (sessionId) await endGameSession(sessionId, score, currentSector, playerName);
+           setPhase('gameover');
+        } else {
+           loadScenario();
+        }
+        return;
+      }
+    }
+
     setSelectedOption(choice);
     const isCorrect = choice === scenario.correctOption;
     setFeedback(isCorrect ? 'correct' : 'wrong');
