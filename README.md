@@ -33,10 +33,11 @@ This project is built with a modern, high-performance stack designed for respons
 - **Type Safety**: [TypeScript](https://www.typescriptlang.org/) ensures robust logic across the game state and AI integrations.
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) for a sleek, "low-fi high-tech" terminal aesthetic.
 - **Icons**: [Lucide React](https://lucide.dev/) for sharp, functional iconography.
-- **Backend**: [Supabase](https://supabase.com/) providing PostgreSQL for the leaderboard and Edge Functions for server-side logic.
-- **AI Integration**: 
-    - **Groq**: Leveraged for near-instantaneous scenario generation using LPU™ technology.
-    - **OpenRouter**: Implemented as a high-reliability fallback layer.
+- **Backend**: [Supabase](https://supabase.com/) providing PostgreSQL for the leaderboard and session persistence.
+- **AI Integration (Client-Side Agent)**: 
+    - **Puter.js**: The core intelligence agent. Scenarios are generated **directly in the browser** using Puter's AI capabilities, eliminating backend latency.
+    - **Dynamic Prompting**: The game state (sectors and corrupted words) is fed into the LLM on the fly to create unique survival challenges.
+    - **Fallback Layer**: Built-in redundancy to ensure the "Facility AI" remains online during high traffic.
 - **Persistence**: [Puter.js](https://puter.com/) for cloud-based save states and cross-device session tracking.
 - **Sound Engine**: Custom implementation using the **Web Audio API** for procedural, synthetic soundscapes that react to the game's glitch state.
 
@@ -67,7 +68,7 @@ This project is built with a modern, high-performance stack designed for respons
    ```
 
 4. **Initialize Database:**
-   Apply the migrations found in `supabase/migrations/` to your Supabase instance.
+   Apply the migrations found in `supabase/migrations/` to your Supabase instance. This sets up the leaderboard and game session tables.
 
 5. **Start Development Server:**
    ```bash
