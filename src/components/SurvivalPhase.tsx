@@ -212,6 +212,16 @@ export function SurvivalPhase() {
             </div>
           )}
         </div>
+        <div className="bg-black border-2 border-red-900/50 p-3 h-20 overflow-hidden relative">
+          <div className="absolute inset-0 bg-red-900/5 opacity-5 animate-pulse" />
+          <div className="font-mono text-[10px] text-red-500/60 flex flex-col-reverse h-full overflow-y-auto scrollbar-hide">
+             <p className="animate-pulse">{'>'} Neural static detected... {timeLeft}s remaining for cognitive integrity.</p>
+             <p>[LOG] Memory sector {currentSector} is undergoing forced restructuring.</p>
+             <p>[AI] Trust the glitch. The truth is too stable to be real.</p>
+             <p>[STATUS] LINGUISTIC_ANCHOR_STATE: UNSTABLE</p>
+             <p>[LOG] Buffer overflow in semantic processing. Re-evaluating truth values.</p>
+          </div>
+        </div>
       </div>
     </div>
   );

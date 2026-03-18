@@ -14,7 +14,7 @@ export function GlitchText({ text, className = '' }: GlitchTextProps) {
 
     const interval = setInterval(() => {
       if (frame % 10 === 0) {
-        const newText = text.split('').map((char, i) => {
+        const newText = text.split('').map((char) => {
           if (Math.random() < 0.1) {
             return chars[Math.floor(Math.random() * chars.length)];
           }

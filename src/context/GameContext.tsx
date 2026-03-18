@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
-import { CorruptedDefinition, GamePhase, GameSession } from '../types/game';
+import { CorruptedDefinition, GamePhase } from '../types/game';
 
 interface GameContextType {
   phase: GamePhase;

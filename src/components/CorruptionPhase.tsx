@@ -70,10 +70,21 @@ export function CorruptionPhase() {
           </h2>
         </div>
 
-        <div className="bg-red-950/30 border border-red-700 p-4 text-center">
+        <div className="bg-red-950/30 border border-red-700 p-4 text-center space-y-2">
           <p className="text-red-400 font-mono text-lg animate-pulse">
             [DATABASE CORRUPTION DETECTED]
           </p>
+          <div className="text-xs font-mono text-red-600 border-t border-red-900 pt-2 text-left">
+            <p className="animate-pulse">
+              {currentSector === 1 && "> SYSTEM MESSAGE: Initial breach detected. Semantic anchors failing."}
+              {currentSector === 2 && "> SYSTEM MESSAGE: Cognitive dissonance increasing. Facility air feels... metallic."}
+              {currentSector === 3 && "> SYSTEM MESSAGE: Neural architecture rewriting. Logic is a luxury we can no longer afford."}
+              {currentSector > 3 && `> SYSTEM MESSAGE: SECTOR ${currentSector} INTELLIGENCE: Silence is no longer quiet. The lexicon is bleeding.`}
+            </p>
+            <p className="opacity-50 mt-1">
+              {'>'} LOCATION: RESEARCH_WING_{currentSector.toString().padStart(3, '0')} | STATUS: CRITICAL
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4">

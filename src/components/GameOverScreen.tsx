@@ -52,10 +52,16 @@ export function GameOverScreen() {
             <GlitchText text="TERMINATED" className="text-red-500" />
           </h1>
 
-          <div className="bg-red-950/30 border border-red-700 p-4">
+          <div className="bg-red-950/30 border border-red-700 p-4 space-y-2">
             <p className="text-red-400 font-mono text-lg">
               [SEMANTIC FAILURE - SYSTEM SHUTDOWN]
             </p>
+            <div className="text-[10px] font-mono text-red-600 text-left border-t border-red-900 pt-2">
+              <p>{'>'} ERROR_CODE: 0xDEADBEEF</p>
+              <p>{'>'} REASON: Cognitive coherence dropped below 2%.</p>
+              <p>{'>'} OPERATOR_STATE: Semantic rejection of facility truth.</p>
+              <p>{'>'} LOG: The concept of "survival" has been redefined as "compliance." You failed to comply.</p>
+            </div>
           </div>
         </div>
 

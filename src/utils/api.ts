@@ -1,8 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { GameSession, LeaderboardEntry, CorruptedDefinition } from '../types/game';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const CLOUD_AI_PROVIDER = import.meta.env.VITE_CLOUD_AI_PROVIDER;
 
 export async function createGameSession(playerName: string): Promise<string> {
   const { data, error } = await supabase
@@ -79,65 +77,50 @@ export async function generateScenario(
   sector: number,
   corruptedDefinitions: CorruptedDefinition[]
 ): Promise<any> {
-  const systemPrompt = "You are a thriller game AI that creates tense survival scenarios. Always respond with valid JSON only.";
+  const systemPrompt = `You are the malicious and decaying Facility AI in a psychological thriller. 
+  Your goal is to create TENSE, DESCRIPTIVE, and ATMOSPHERIC survival scenarios. 
+  Use sensory details (sounds, smells, visual glitches). 
+  The tone should be clinical yet threatening. 
+  Always respond with valid JSON only.`;
   
-  const prompt = `Create a survival scenario for sector ${sector}. The player must make a choice based on these corrupted definitions: ${JSON.stringify(corruptedDefinitions)}. 
+  const prompt = `[SYSTEM ERROR: SECTOR ${sector} COMPROMISED]
+  
+  Create a high-stakes survival scenario. The player's life depends on their ability to use these corrupted definitions: ${JSON.stringify(corruptedDefinitions)}. 
+  
+  The scenario description ("scenario") should be 2-3 sentences long, very atmospheric, and must naturally integrate one or more corrupted concepts.
+  
+  Return JSON with this structure:
+  {
+    "scenario": "A vivid, descriptive survival situation (2-3 sentences).",
+    "option1": "A choice that uses a corrupted word (incorrect if it follows real logic).",
+    "option2": "A choice that follows the corrupted meaning (correct).",
+    "correctOption": 2,
+    "explanation": "A clinical explanation of why the player survived or was terminated."
+  }`;
 
-Return JSON with this structure:
-{
-  "text": "Scenario description using corrupted words",
-  "options": [
-    {"text": "Option 1", "usesCorruptedWord": true, "correctChoice": false},
-    {"text": "Option 2", "usesCorruptedWord": false, "correctChoice": true}
-  ],
-  "correctIndex": 1
-}`;
+  // Default to Puter AI as per user preference (Edge functions removed)
+  const response = await fetch("https://api.puter.ai/v1/chat/completions", {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt }
+      ],
+      temperature: 0.8,
+      max_tokens: 500,
+    }),
+  });
 
-  if (CLOUD_AI_PROVIDER === "puter") {
-    // Use Puter AI REST API directly
-    const response = await fetch("https://api.puter.ai/v1/chat/completions", {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 500,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Puter AI error: ${await response.text()}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    return jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
-  } else {
-    // Fallback to edge function for other providers or if explicitly set to supabase
-    const functionUrl = `${SUPABASE_URL}/functions/v1/generate-scenario`;
-    console.log("Calling Supabase Edge Function:", functionUrl);
-    const response = await fetch(functionUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        sector,
-        corruptedDefinitions,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate scenario');
-    }
-
-    return response.json();
+  if (!response.ok) {
+    throw new Error(`Puter AI error: ${await response.text()}`);
   }
+
+  const data = await response.json();
+  const content = data.choices[0].message.content;
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  return jsonMatch ? JSON.parse(jsonMatch[0]) : JSON.parse(content);
 }

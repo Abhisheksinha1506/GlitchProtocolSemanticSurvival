@@ -6,7 +6,7 @@ import { LeaderboardEntry } from '../types/game';
 import { GlitchText } from './GlitchText';
 
 export function LeaderboardScreen() {
-  const { setPhase, resetGame } = useGame();
+  const { resetGame } = useGame();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
